@@ -8,6 +8,7 @@ import android.graphics.BitmapFactory
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
@@ -28,6 +29,7 @@ import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.updateAll
 import androidx.glance.appwidget.action.actionSendBroadcast
 import androidx.glance.background
+import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.ContentScale
@@ -213,8 +215,8 @@ class BookPlayerWidget : GlanceAppWidget() {
             val size = LocalSize.current
             when {
                 size.width < 180.dp -> Compact(context, snapshot)
-                size.height < 180.dp -> Wide(context, snapshot)
-                else -> Large(context, snapshot)
+                size.height < 180.dp -> Wide(context, snapshot, size)
+                else -> Large(context, snapshot, size)
             }
         }
     }
@@ -233,7 +235,7 @@ class BookPlayerWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun Wide(context: Context, state: BookWidgetSnapshot) {
+    private fun Wide(context: Context, state: BookWidgetSnapshot, size: DpSize) {
         Row(GlanceModifier.fillMaxSize().background(bg).cornerRadius(24.dp).padding(14.dp).clickable(openPlayerAction())) {
             Artwork(state, GlanceModifier.size(92.dp).cornerRadius(16.dp))
             Spacer(GlanceModifier.width(14.dp))
@@ -242,15 +244,16 @@ class BookPlayerWidget : GlanceAppWidget() {
                 Text(state.title ?: "Nothing playing", style = TextStyle(text, 16.sp, FontWeight.Bold), maxLines = 1)
                 Text(state.author ?: "Open Enve to choose a book", style = TextStyle(secondary, 11.sp), maxLines = 1)
                 Spacer(GlanceModifier.height(8.dp))
-                Progress(state, 120.dp)
+                val contentWidth = size.width - 28.dp - 92.dp - 14.dp
+                Progress(state, contentWidth)
                 Spacer(GlanceModifier.height(8.dp))
-                Controls(context, state)
+                Controls(context, state, contentWidth)
             }
         }
     }
 
     @Composable
-    private fun Large(context: Context, state: BookWidgetSnapshot) {
+    private fun Large(context: Context, state: BookWidgetSnapshot, size: DpSize) {
         Column(GlanceModifier.fillMaxSize().background(bg).cornerRadius(24.dp).padding(16.dp).clickable(openPlayerAction())) {
             Row {
                 Artwork(state, GlanceModifier.size(112.dp).cornerRadius(18.dp))
@@ -262,9 +265,10 @@ class BookPlayerWidget : GlanceAppWidget() {
                 }
             }
             Spacer(GlanceModifier.height(10.dp))
-            Progress(state, 218.dp)
+            val contentWidth = size.width - 32.dp
+            Progress(state, contentWidth)
             Spacer(GlanceModifier.height(10.dp))
-            Controls(context, state)
+            Controls(context, state, contentWidth)
             if (state.shelfTitles.isNotEmpty()) {
                 Spacer(GlanceModifier.height(12.dp))
                 Text("UP NEXT", style = TextStyle(ember, 10.sp, FontWeight.Bold))
@@ -291,8 +295,8 @@ class BookPlayerWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun Controls(context: Context, state: BookWidgetSnapshot) {
-        Row {
+    private fun Controls(context: Context, state: BookWidgetSnapshot, width: Dp) {
+        Row(GlanceModifier.width(width), horizontalAlignment = Alignment.CenterHorizontally) {
             Command(context, "↶", "back", text)
             Spacer(GlanceModifier.width(26.dp))
             Command(context, if (state.isPlaying) "⏸" else "▶", "toggle", ember)
