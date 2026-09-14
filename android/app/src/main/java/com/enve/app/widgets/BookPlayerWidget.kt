@@ -8,7 +8,6 @@ import android.graphics.BitmapFactory
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
@@ -168,7 +167,7 @@ class BookWidgetPublisher @Inject constructor(
             ) as? SuccessResult ?: return
             val file = File(context.filesDir, "widget_book_cover.jpg")
             FileOutputStream(file).use { output ->
-                result.drawable.toBitmap(512, 512).compress(Bitmap.CompressFormat.JPEG, 86, output)
+                result.drawable.toBitmap().compress(Bitmap.CompressFormat.JPEG, 86, output)
             }
             BookWidgetStore.saveArtwork(context, file.absolutePath)
             BookPlayerWidget().updateAll(context)
@@ -206,9 +205,7 @@ private val secondary = ColorProvider(Color(0xFFB9AA98))
 private val ember = ColorProvider(Color(0xFFF5921A))
 
 class BookPlayerWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Responsive(
-        setOf(DpSize(120.dp, 120.dp), DpSize(250.dp, 120.dp), DpSize(250.dp, 250.dp)),
-    )
+    override val sizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val snapshot = BookWidgetStore.load(context)
