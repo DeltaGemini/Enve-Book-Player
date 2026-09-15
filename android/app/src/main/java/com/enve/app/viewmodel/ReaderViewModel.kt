@@ -1039,6 +1039,7 @@ class ReaderViewModel @Inject constructor(
         playback = readAloudPlayback,
         playbackSession = ReadAloudPlaybackSession(
             id = checkpointToken.sessionId,
+            bookKey = checkpointToken.bookKey,
             title = bookTitle,
             author = bookAuthor,
         ),

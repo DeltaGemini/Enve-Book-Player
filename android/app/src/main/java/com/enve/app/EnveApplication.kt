@@ -15,7 +15,6 @@ import com.enve.app.playback.AudiobookDownloadWorker
 import com.enve.app.readium.ReadiumManager
 import com.enve.app.storyalign.StoryAlignWorker
 import com.enve.app.widgets.BookWidgetPublisher
-import com.enve.app.widgets.EbookWidgetPublisher
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -35,9 +34,6 @@ class EnveApplication : Application(), ImageLoaderFactory, Configuration.Provide
 
     @Inject
     lateinit var bookWidgetPublisher: BookWidgetPublisher
-
-    @Inject
-    lateinit var ebookWidgetPublisher: EbookWidgetPublisher
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()

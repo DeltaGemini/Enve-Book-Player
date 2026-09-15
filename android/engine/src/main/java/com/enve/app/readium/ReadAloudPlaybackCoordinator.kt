@@ -33,6 +33,7 @@ import kotlinx.coroutines.withContext
 
 data class ReadAloudPlaybackState(
     val sessionId: String? = null,
+    val bookKey: String? = null,
     val mediaId: String? = null,
     val positionMs: Long = 0L,
     val isPlaying: Boolean = false,
@@ -46,6 +47,7 @@ data class ReadAloudPlaybackState(
 
 data class ReadAloudPlaybackSession(
     val id: String,
+    val bookKey: String,
     val title: String,
     val author: String?,
 )
@@ -78,6 +80,7 @@ class ReadAloudPlaybackCoordinator @Inject constructor(
     private var controller: MediaController? = null
     private var positionJob: Job? = null
     private var activeSessionId: String? = null
+    private var activeBookKey: String? = null
     private var desiredSessionId: String? = null
     private var commandGeneration: Long = 0L
     private val sessionLossHandlers = mutableMapOf<String, () -> Unit>()
@@ -128,6 +131,7 @@ class ReadAloudPlaybackCoordinator @Inject constructor(
 
     internal suspend fun prepareAndPlay(
         command: ReadAloudPlaybackCommand,
+        bookKey: String,
         trackKey: String,
         audioFile: File,
         title: String,
@@ -141,6 +145,7 @@ class ReadAloudPlaybackCoordinator @Inject constructor(
         commandMutex.withLock {
             if (!isCommandCurrent(command.sessionId, command.generation)) return@withLock false
             activeSessionId = command.sessionId
+            activeBookKey = bookKey
             val mediaId = "$MEDIA_ID_PREFIX${command.sessionId}:${trackKey.hashCode()}"
             val metadata = MediaMetadata.Builder()
                 .setTitle(title)
@@ -392,6 +397,7 @@ class ReadAloudPlaybackCoordinator @Inject constructor(
         }
         _state.value = _state.value.copy(
             sessionId = sessionId,
+            bookKey = activeBookKey,
             mediaId = mediaId,
             positionMs = player.currentPosition.coerceAtLeast(0L),
             isPlaying = player.isPlaying,

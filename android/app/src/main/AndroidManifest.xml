@@ -243,18 +243,6 @@
             android:exported="false" />
 
         <receiver
-            android:name=".widgets.EbookWidgetReceiver"
-            android:label="@string/widget_ebook_reader_label"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/widget_ebook_reader" />
-        </receiver>
-
-        <receiver
             android:name=".automation.PlaybackAutomationReceiver"
             android:exported="true">
             <intent-filter>
