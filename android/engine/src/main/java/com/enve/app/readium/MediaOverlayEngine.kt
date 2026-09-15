@@ -1095,6 +1095,7 @@ class MediaOverlayEngine(
             val tPrep = android.os.SystemClock.elapsedRealtime()
             val applied = coordinator.prepareAndPlay(
                 command = command,
+                bookKey = session.bookKey,
                 trackKey = clip.audioHref,
                 audioFile = audioFile,
                 title = session.title,

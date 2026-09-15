@@ -12,7 +12,9 @@ object EpubCoverExtractor {
 
     private const val COVERS_DIR = "epub-covers"
 
-    fun extractCoverUri(context: Context, epubUri: Uri): String? {
+    data class Metadata(val coverUrl: String? = null, val readAlongAvailable: Boolean = false)
+
+    fun extractMetadata(context: Context, epubUri: Uri): Metadata? {
         val containerBytes = readZipEntry(context, epubUri) { it == "META-INF/container.xml" }
             ?: return null
         val opfPath = parseOpfPath(containerBytes) ?: return null
@@ -21,10 +23,12 @@ object EpubCoverExtractor {
         val opfBaseDir = opfPath.substringBeforeLast('/', "")
 
         val parsedOpf = parseOpf(opfBytes) ?: return null
-        val coverHref = pickCoverHref(parsedOpf) ?: return null
+        val overlayIds = parsedOpf.items.filter { it.mediaType == "application/smil+xml" }.map { it.id }.toSet()
+        val metadata = Metadata(readAlongAvailable = parsedOpf.items.any { it.mediaOverlay in overlayIds })
+        val coverHref = pickCoverHref(parsedOpf) ?: return metadata
         val coverEntryPath = if (opfBaseDir.isEmpty()) coverHref else "$opfBaseDir/$coverHref"
 
-        val coverBytes = readZipEntry(context, epubUri) { it == coverEntryPath } ?: return null
+        val coverBytes = readZipEntry(context, epubUri) { it == coverEntryPath } ?: return metadata
 
         val extension = coverHref.substringAfterLast('.', "jpg").lowercase()
             .let { if (it.matches(Regex("[a-z0-9]{1,5}"))) it else "jpg" }
@@ -33,7 +37,7 @@ object EpubCoverExtractor {
         val filename = "${uriHash(epubUri)}.$extension"
         val coverFile = File(coversDir, filename)
         coverFile.writeBytes(coverBytes)
-        return Uri.fromFile(coverFile).toString()
+        return metadata.copy(coverUrl = Uri.fromFile(coverFile).toString())
     }
 
     private inline fun readZipEntry(
@@ -58,6 +62,7 @@ object EpubCoverExtractor {
         val href: String,
         val mediaType: String,
         val properties: String,
+        val mediaOverlay: String,
     )
 
     private data class ParsedOpf(
@@ -103,6 +108,7 @@ object EpubCoverExtractor {
                                     href = href,
                                     mediaType = parser.getAttributeValue(null, "media-type") ?: "",
                                     properties = parser.getAttributeValue(null, "properties") ?: "",
+                                    mediaOverlay = parser.getAttributeValue(null, "media-overlay") ?: "",
                                 )
                             )
                         }

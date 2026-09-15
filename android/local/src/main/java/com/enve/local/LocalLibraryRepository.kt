@@ -94,7 +94,7 @@ class LocalLibraryRepository @Inject constructor(
 
         audioGroups.forEach { group ->
             if (group.size == 1) {
-                mapFileToBook(group.first(), directory)?.let(books::add)
+                mapFileToBook(group.first(), directory, allowFolderCover = !isCollectionFolder)?.let(books::add)
             } else {
                 mapAudioFolderToBook(directory, group, useFolderIdentity = !isCollectionFolder)?.let(books::add)
             }
@@ -106,7 +106,7 @@ class LocalLibraryRepository @Inject constructor(
             .forEach { mapFileToBook(it, directory)?.let(books::add) }
     }
 
-    private fun mapFileToBook(file: DocumentFile, directory: DocumentFile): Book? {
+    private fun mapFileToBook(file: DocumentFile, directory: DocumentFile, allowFolderCover: Boolean = false): Book? {
         val name = file.name ?: return null
         val extension = file.extension()
 
@@ -118,14 +118,29 @@ class LocalLibraryRepository @Inject constructor(
         }
 
         val id = file.uri.toString()
-        val coverUrl = if (extension == "epub") {
-            runCatching { EpubCoverExtractor.extractCoverUri(context, file.uri) }.getOrNull()
+        val audioMetadata = if (mediaType == AppMediaType.AUDIOBOOK) readAudioMetadata(file) else null
+        val epubMetadata = if (extension == "epub") {
+            runCatching { EpubCoverExtractor.extractMetadata(context, file.uri) }.getOrNull()
         } else null
+        val coverUrl = when {
+            extension == "epub" -> epubMetadata?.coverUrl
+            mediaType == AppMediaType.AUDIOBOOK -> {
+                val namedCover = directory.listFiles().firstOrNull {
+                    !it.isDirectory && it.extension() in coverExtensions &&
+                        it.name.orEmpty().substringBeforeLast(".").equals(name.substringBeforeLast("."), ignoreCase = true)
+                }?.uri?.toString()
+                namedCover ?: LocalAudioCoverExtractor.extract(context, file.uri)
+                    ?: if (allowFolderCover) folderCoverUri(directory) else null
+            }
+            else -> null
+        }
 
         val book = Book(
             id = id,
-            title = name.substringBeforeLast("."),
-            author = "Local",
+            title = audioMetadata?.title ?: name.substringBeforeLast("."),
+            author = audioMetadata?.author ?: "Local",
+            duration = (audioMetadata?.durationMs ?: 0L) / 1000L,
+            readAlongAvailable = epubMetadata?.readAlongAvailable ?: false,
             source = BookSource.LOCAL,
             mediaType = mediaType,
             readStatus = ReadStatus.UNREAD,
@@ -196,6 +211,7 @@ class LocalLibraryRepository @Inject constructor(
             LocalAudioMetadata(
                 durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L,
                 title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE),
+                author = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST),
             )
         } catch (_: Exception) {
             LocalAudioMetadata()
@@ -248,6 +264,7 @@ class LocalLibraryRepository @Inject constructor(
     private data class LocalAudioMetadata(
         val durationMs: Long = 0L,
         val title: String? = null,
+        val author: String? = null,
     )
 
     private companion object {
